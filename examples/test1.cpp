@@ -5,7 +5,7 @@
 
 using namespace mosaic::pipeline;
 
-class IntProducer: public Box, public Producer<IntProducer, int> {
+class IntProducer: public Box, public Producer<int> {
 public:
     IntProducer(int i) : m_i(i) {}
 
@@ -45,7 +45,7 @@ class IntConsumer: public Box, public Consumer<int> {
     }
 };
 
-class IntDoubler: public Box, public Consumer<int>, public Producer<IntDoubler, int> {
+class IntDoubler: public Box, public Consumer<int>, public Producer<int> {
     void start() override {
         std::cout << "Starting int doubler\n";
     }
@@ -66,9 +66,11 @@ int main() {
     IntConsumer consumer;
     IntDoubler doubler;
 
-    p.connect(producer, consumer);
-    p.connect(producer, doubler);
-    p.connect(doubler, consumer);
+    p.connect<int>(producer, consumer);
+    p.connect<int>(producer, doubler);
+    p.connect<int>(doubler, consumer);
+
+    p.run_until_stopped();
 
     return 0;
 }

@@ -1,10 +1,13 @@
 CXXFILES = test1.cpp ../pipeline.cpp
 OFILES = ${CXXFILES:.cpp=.o}
 
-CXXFLAGS = -std=c++17 -Wall -Werror -Wextra -Og
+CFLAGS += -std=c++17
+CFLAGS += -Werror -Wall -Wextra -std=c99 -march=native
+CFLAGS += -fsanitize=undefined -fsanitize=address
+CFLAGS += -Og -g
 
 all: test1
 
 test1: ${OFILES}
-	${CXX} ${CXXFLAGS} $? -o $@
+	${CXX} ${CFLAGS} -o $@ $^
 
