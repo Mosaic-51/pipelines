@@ -1,13 +1,10 @@
 #pragma once
-#include <iostream>
 
 namespace mosaic::pipeline {
 
 template <typename ValueT>
 void Producer<ValueT>::produce(ValueT v) {
-    std::cout << "produce" << v << "\n";
     std::unique_lock lock(m_box_this->m_mutex);
-    std::cout << "produce - locked\n";
 
     if (!m_box_this)
         throw std::logic_error("Can't produce values without being associated with a pipeline");
@@ -17,7 +14,10 @@ void Producer<ValueT>::produce(ValueT v) {
         return; // Don't bother producing values if noone listens
 
     m_buffered.emplace_back(std::move(v));
-    m_box_this->m_associated_pipeline->register_waiting_producer(this);
+    // Direct call to the method Pipeline::register_waiting_producer would
+    // result in deadlock, in case that Producer::produce is called from
+    // the same context/thread as the Pipeline::run_until_stopped.
+    m_box_this->m_associated_pipeline->m_queue_waiting_producers.submit(this);
 }
 
 template <typename ValueT>

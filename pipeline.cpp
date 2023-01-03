@@ -15,12 +15,16 @@ bool Box::maybe_associate_with(Pipeline *pipeline) {
 }
 
 void Pipeline::run_until_stopped() {
+    m_queue_waiting_producers.start();
     while (!m_stop_flag) {
-        for (auto producer: m_waiting_producers)
-            producer->send_buffered();
-        m_waiting_producers.clear();
-
         std::unique_lock lock(m_mutex);
+        if (m_registered_producer.has_value())
+        {
+          (*m_registered_producer)->send_buffered();
+        }
+
+        m_registered_producer.reset();
+
         m_cond.wait(lock);
     }
 }
@@ -31,35 +35,34 @@ void Pipeline::stop() {
 }
 
 void Pipeline::register_waiting_producer(detail::TypeErasedProducer *producer) {
-    m_waiting_producers.push_back(producer);
+    std::unique_lock lock(m_mutex);
+    m_registered_producer.emplace(producer);
     m_cond.notify_all();
 }
 
 void Pipeline::register_box(Box &box) {
-    if (box.maybe_associate_with(this))
+    if (box.maybe_associate_with(this)) {
         m_boxes.push_back(&box);
+    }
 }
 
 void Pipeline::pre_start_associated_boxes()
 {
-  for (auto* box: m_boxes)
-  {
+  for (auto* box: m_boxes) {
     box->pre_start();
   }
 }
 
 void Pipeline::start_associated_boxes()
 {
-  for (auto* box: m_boxes)
-  {
+  for (auto* box: m_boxes) {
     box->start();
   }
 }
 
 void Pipeline::stop_associated_boxes()
 {
-  for (auto* box: m_boxes)
-  {
+  for (auto* box: m_boxes) {
     box->stop();
   }
 }

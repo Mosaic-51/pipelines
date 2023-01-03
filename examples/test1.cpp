@@ -56,7 +56,6 @@ class IntDoubler: public Box, public Consumer<int>, public Producer<int> {
     }
 
     void input(int v) override {
-        std::cout << "IntDoubler::input\n";
         produce(2 * v);
     }
 };

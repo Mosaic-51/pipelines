@@ -6,6 +6,9 @@
 #include <vector>
 #include <cassert>
 #include <atomic>
+#include <optional>
+
+#include "queue_worker.hpp"
 
 namespace mosaic::pipeline {
 
@@ -152,9 +155,16 @@ private:
 
     std::mutex m_mutex;
     std::condition_variable m_cond;
-    std::vector<detail::TypeErasedProducer*> m_waiting_producers;
+    std::optional<detail::TypeErasedProducer*> m_registered_producer;
+
+    QueueWorker<detail::TypeErasedProducer*>
+      m_queue_waiting_producers{[this](detail::TypeErasedProducer* producer)
+      {
+        register_waiting_producer(producer);
+      }};
+
     std::atomic_bool m_stop_flag = false;
-    std::vector<Box *> m_boxes;
+    std::vector<Box*> m_boxes;
 
     template <typename T>
     friend class Producer;
