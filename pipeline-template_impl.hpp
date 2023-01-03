@@ -1,10 +1,13 @@
 #pragma once
+#include <iostream>
 
 namespace mosaic::pipeline {
 
 template <typename ValueT>
 void Producer<ValueT>::produce(ValueT v) {
+    std::cout << "produce" << v << "\n";
     std::unique_lock lock(m_box_this->m_mutex);
+    std::cout << "produce - locked\n";
 
     if (!m_box_this)
         throw std::logic_error("Can't produce values without being associated with a pipeline");

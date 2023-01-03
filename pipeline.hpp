@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <vector>
 #include <cassert>
+#include <atomic>
 
 namespace mosaic::pipeline {
 
@@ -39,7 +40,6 @@ protected:
     /// At this time all producers connected to this box have been pre-started.
     /// May be used ask producers for mock data to prime internal buffers.
     /// Called from the main thread
-    /// TODO: In fact this is never called now!
     virtual void pre_start() {};
 
     /// Called when starting the pipeline.
@@ -47,14 +47,12 @@ protected:
     /// connected to this box have been started
     /// After this call the box may start producing data.
     /// Called from the main thread
-    /// TODO: In fact this is never called now!
     virtual void start() {};
 
     /// Called when stopping the pipeline.
     /// At this time all producers connected to this box have been stopped.
     /// After this call the box must not produce data any more.
     /// Called from the main thread
-    /// TODO: In fact this is never called now!
     virtual void stop() {};
 
 private:
@@ -140,6 +138,10 @@ public:
     void run_until_stopped();
     void stop();
 
+    void pre_start_associated_boxes();
+    void start_associated_boxes();
+    void stop_associated_boxes();
+
     /// Connect output of source to destination
     template <typename ValueT, typename SourceBox, typename DestinationBox>
     void connect(SourceBox& source, DestinationBox& destination);
@@ -151,7 +153,7 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_cond;
     std::vector<detail::TypeErasedProducer*> m_waiting_producers;
-    bool m_stop_flag = false;
+    std::atomic_bool m_stop_flag = false;
     std::vector<Box *> m_boxes;
 
     template <typename T>
