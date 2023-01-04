@@ -8,8 +8,6 @@
 #include <atomic>
 #include <optional>
 
-#include "queue_worker.hpp"
-
 namespace mosaic::pipeline {
 
 class Pipeline;
