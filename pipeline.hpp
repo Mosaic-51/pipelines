@@ -33,29 +33,28 @@ public:
 class Box {
 protected:
     Box() = default;
-    Box(Box&&) = delete; // Boxes are referenced by pipeline, can't be moved (TODO)
+    Box(Box&&) = delete; // Boxes are referenced by pipeline, can't be moved
     Box(const Box&): Box() {} // Copied box is not associated with any pipeline
     void operator=(const Box&) = delete;
     void operator=(Box&&) = delete;
     virtual ~Box() {}
 
-    /// Called when starting the pipeline.
-    /// At this time all producers connected to this box have been pre-started.
     /// May be used ask producers for mock data to prime internal buffers.
-    /// Called from the main thread
+    /// Called iteratively from the pipeline main thread.
+    /// The order of calls in the collection depends on the order of the
+    /// box registration.
     virtual void pre_start() {};
 
-    /// Called when starting the pipeline.
-    /// At this time all boxes have been pre-started and all consumers
-    /// connected to this box have been started
     /// After this call the box may start producing data.
-    /// Called from the main thread
+    /// Called iteratively from the pipeline main thread
+    /// The order of calls in the collection depends on the order of the
+    /// box registration.
     virtual void start() {};
 
-    /// Called when stopping the pipeline.
-    /// At this time all producers connected to this box have been stopped.
     /// After this call the box must not produce data any more.
-    /// Called from the main thread
+    /// Called iteratively from the pipeline main thread
+    /// The order of calls in the collection depends on the order of the
+    /// box registration.
     virtual void stop() {};
 
 private:
@@ -64,7 +63,6 @@ private:
     /// Throws exception if already associated with different pipeline.
     bool maybe_associate_with(Pipeline *pipeline);
 
-    std::mutex m_mutex;
     Pipeline *m_associated_pipeline = nullptr;
 
     template <typename T>
@@ -81,7 +79,7 @@ public:
 
     Consumer() = default;
     Consumer(const Consumer&): Consumer() {} // Copying consumers is fine
-    Consumer(Consumer&&) = delete; // Consumers are referenced in producers, can't be moved (TODO)
+    Consumer(Consumer&&) = delete; // Consumers are referenced in producers, can't be moved.
     Consumer &operator=(const Consumer&) = default; // Assignment of consumers should not be a problem
     Consumer &operator=(Consumer&&) = delete; // Same as move construction
 
@@ -97,7 +95,6 @@ protected:
 
 /// Mix-in that allows sending valuse of type ValueT.
 /// Final users need to inherit also from `Box`.
-/// TODO: Maybe we want to support producers that buffer internally, without extra std::vector?
 template <typename ValueT>
 class Producer: private detail::TypeErasedProducer {
 public:
@@ -117,9 +114,9 @@ private:
     void send_buffered() override final;
     void connect(Consumer<ValueT> *consumer, Box *box_this);
 
+    // Pointer to the box that uses this mixin (side-cast to box)
+    // This value gets set when connecting and is used to access the shared functionality of the box
     Box *m_box_this = nullptr;
-        // Pointer to the box that uses this mixin (side-cast to box)
-        // This value gets set when connecting and is used to access the shared functionality of the box
 
     std::vector<Consumer<OutputValueT> *> m_consumers;
     std::vector<OutputValueT> m_buffered;
@@ -141,10 +138,6 @@ public:
     void run_until_stopped();
     void stop();
 
-    void pre_start_associated_boxes();
-    void start_associated_boxes();
-    void stop_associated_boxes();
-
     /// Connect output of source to destination
     template <typename ValueT, typename SourceBox, typename DestinationBox>
     void connect(SourceBox& source, DestinationBox& destination);
@@ -153,15 +146,21 @@ private:
     void register_waiting_producer(detail::TypeErasedProducer *producer);
     void register_box(Box &box);
 
-    std::mutex m_mutex;
-    std::condition_variable m_cond;
-    std::optional<detail::TypeErasedProducer*> m_registered_producer;
+    /// Calls pre_start method on all registered boxes.
+    /// This method is called internally from the main thread.
+    void pre_start_associated_boxes();
 
-    QueueWorker<detail::TypeErasedProducer*>
-      m_queue_waiting_producers{[this](detail::TypeErasedProducer* producer)
-      {
-        register_waiting_producer(producer);
-      }};
+    /// Calls start method on all registered boxes.
+    /// This method is called internally from the main thread after pre_start_associated_boxes.
+    void start_associated_boxes();
+
+    /// Calls stop method on all registered boxes.
+    /// This method is called in the end of the main processing thread.
+    void stop_associated_boxes();
+
+    std::recursive_mutex m_mutex;
+    std::condition_variable_any m_cond;
+    std::vector<detail::TypeErasedProducer*> m_waiting_producers;
 
     std::atomic_bool m_stop_flag = false;
     std::vector<Box*> m_boxes;
