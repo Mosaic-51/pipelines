@@ -72,4 +72,9 @@ void Pipeline::stop_associated_boxes()
   }
 }
 
+std::recursive_mutex& Pipeline::get_mutex()
+{
+  return m_mutex;
+}
+
 }

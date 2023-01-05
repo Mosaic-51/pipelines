@@ -11,6 +11,7 @@ void Producer<ValueT>::produce(ValueT v) {
   if (m_consumers.empty())
     return; // Don't bother producing values if noone listens
 
+  std::unique_lock lock(m_box_this->m_associated_pipeline->get_mutex());
   m_buffered.emplace_back(std::move(v));
   m_box_this->m_associated_pipeline->register_waiting_producer(this);
 }

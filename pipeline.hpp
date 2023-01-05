@@ -17,10 +17,12 @@ namespace detail {
 /// Allows for sending buffered messages regardles of message type
 class TypeErasedProducer {
 public:
-    /// Send all produced messages that are buffered in this producer.
-    /// Always called from the main thread (Pipeline::run_until_stopped()).
-    /// Must not block.
-    virtual void send_buffered() = 0;
+
+  virtual ~TypeErasedProducer() = default;
+  /// Send all produced messages that are buffered in this producer.
+  /// Always called from the main thread (Pipeline::run_until_stopped()).
+  /// Must not block.
+  virtual void send_buffered() = 0;
 };
 
 }
@@ -76,6 +78,7 @@ public:
     using InputValueT = ValueT;
 
     Consumer() = default;
+    virtual ~Consumer() = default;
     Consumer(const Consumer&): Consumer() {} // Copying consumers is fine
     Consumer(Consumer&&) = delete; // Consumers are referenced in producers, can't be moved.
     Consumer &operator=(const Consumer&) = default; // Assignment of consumers should not be a problem
@@ -139,6 +142,8 @@ public:
     /// Connect output of source to destination
     template <typename ValueT, typename SourceBox, typename DestinationBox>
     void connect(SourceBox& source, DestinationBox& destination);
+
+    std::recursive_mutex& get_mutex();
 
 private:
     void register_waiting_producer(detail::TypeErasedProducer *producer);
