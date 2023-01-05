@@ -40,7 +40,7 @@ void Pipeline::stop() {
 }
 
 void Pipeline::register_waiting_producer(detail::TypeErasedProducer *producer) {
-  std::unique_lock lock(m_mutex);
+  // The m_mutex is locked before calling of this method from
   m_waiting_producers.push_back(producer);
   m_cond.notify_all();
 }
@@ -70,11 +70,6 @@ void Pipeline::stop_associated_boxes()
   for (auto* box: m_boxes) {
     box->stop();
   }
-}
-
-std::recursive_mutex& Pipeline::get_mutex()
-{
-  return m_mutex;
 }
 
 }

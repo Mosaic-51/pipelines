@@ -136,17 +136,21 @@ public:
     void operator=(const Pipeline&) = delete;
     void operator=(Pipeline&&) = delete;
 
+    /// The main processing method that either pick up the waiting producer and send its data
+    /// or wait for notification if all scheduler producers are processed.
     void run_until_stopped();
+    /// Unblock and finish the run_until_stopped method, must be called from different thread than
+    /// the one running the run_until_stopped.
     void stop();
 
     /// Connect output of source to destination
     template <typename ValueT, typename SourceBox, typename DestinationBox>
     void connect(SourceBox& source, DestinationBox& destination);
 
-    std::recursive_mutex& get_mutex();
-
 private:
+    /// Schedule the waiting producers.
     void register_waiting_producer(detail::TypeErasedProducer *producer);
+    /// Register the box. Called when connecting the boxes in the pipeline.
     void register_box(Box &box);
 
     /// Calls pre_start method on all registered boxes.
