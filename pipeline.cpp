@@ -47,7 +47,7 @@ void Pipeline::register_waiting_producer(detail::TypeErasedProducer *producer) {
 
 void Pipeline::register_box(Box &box) {
   if (box.maybe_associate_with(this)) {
-      m_boxes.push_back(&box);
+    m_boxes.push_back(&box);
   }
 }
 

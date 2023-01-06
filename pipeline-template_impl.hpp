@@ -5,7 +5,7 @@ namespace mosaic::pipeline {
 template <typename ValueT>
 void Producer<ValueT>::produce(ValueT v) {
   if (!m_box_this)
-      throw std::logic_error("Can't produce values without being associated with a pipeline");
+    throw std::logic_error("Can't produce values without being associated with a pipeline");
   assert(m_box_this->m_associated_pipeline);
 
   if (m_consumers.empty())
