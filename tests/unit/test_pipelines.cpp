@@ -58,7 +58,6 @@ private:
 
 class IntConsumer: public Box, public Consumer<int> {
 
-
   void pre_start() override {
     m_pre_start_called = true;
   }
@@ -180,19 +179,7 @@ TEST_CASE("Box registration") {
 
   SECTION("Same box registration on more than one pipeline shall result in the exception") {
     p1.connect<int>(doubler, consumer);
-    auto logic_error_thrown = false;
-
-    try {
-      p2.connect<int>(doubler, consumer);
-    }
-    catch(std::logic_error& exc) {
-      logic_error_thrown = true;
-    }
-    catch(...) {
-      logic_error_thrown = true;
-    }
-
-    REQUIRE(logic_error_thrown);
+    REQUIRE_THROWS_AS(p2.connect<int>(doubler, consumer), std::logic_error);
   }
 }
 
