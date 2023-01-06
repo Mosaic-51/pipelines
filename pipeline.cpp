@@ -47,7 +47,7 @@ void Pipeline::stop() {
 }
 
 void Pipeline::register_waiting_producer(detail::TypeErasedProducer *producer) {
-  // The m_mutex is locked before calling of this method from
+  // The m_mutex is locked before calling of this method from Producer::produce
   m_waiting_producers.push_back(producer);
   m_cond.notify_all();
 }
