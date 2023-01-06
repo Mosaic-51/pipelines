@@ -17,18 +17,25 @@ void Pipeline::run_until_stopped() {
   pre_start_associated_boxes();
   start_associated_boxes();
 
-  while (!m_stop_flag) {
-    std::unique_lock lock(m_mutex);
-    if (!m_waiting_producers.empty()) {
-      auto waiting_producer = m_waiting_producers.back();
-      m_waiting_producers.pop_back();
-      waiting_producer->send_buffered();
+  try {
+    while (!m_stop_flag) {
+      std::unique_lock lock(m_mutex);
+      if (!m_waiting_producers.empty()) {
+        auto waiting_producer = m_waiting_producers.back();
+        m_waiting_producers.pop_back();
+        waiting_producer->send_buffered();
+      }
+      else {
+        // Wait only in case that there are no more waiting producers -
+        // condition variable then cannot be notified before waiting
+        m_cond.wait(lock);
+      }
     }
-    else {
-      // Wait only in case that there are no more waiting producers -
-      // condition variable then cannot be notified before waiting
-      m_cond.wait(lock);
-    }
+  }
+  catch(...)
+  {
+    stop_associated_boxes();
+    throw;
   }
 
   stop_associated_boxes();
